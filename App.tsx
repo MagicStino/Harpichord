@@ -289,7 +289,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-amber-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.06 • 2026</span>
+            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.07 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-amber-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-amber-600 animate-ping" />
             </div>
@@ -306,7 +306,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* SCALE WRAPPER - Instrument body broadened, border-16px for thinner outer chrome */}
+      {/* SCALE WRAPPER - Increased height and width, border-16px for thinner outer chrome */}
       <div 
         style={{ 
           transform: `scale(${scale})`, 
@@ -315,27 +315,30 @@ const App: React.FC = () => {
           height: '1000px',
           flexShrink: 0
         }} 
-        className="omnichord-body p-16 rounded-[7.5rem] border-[16px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
+        className="omnichord-body pt-10 pb-16 px-16 rounded-[7.5rem] border-[16px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-10 bg-black/5 rounded-b-[4rem] border-b border-black/5" />
+        {/* SMALLER TOP DECORATION BUMPER */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
-        {/* COMPACT HEADER */}
-        <div className="flex justify-between items-start w-full px-24 pt-4">
+        {/* COMPACT HEADER - Moved up (pt-0) */}
+        <div className="flex justify-between items-start w-full px-24 pt-0">
           <div className="flex flex-col">
-            <span className="branding-text text-7xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
+            {/* HARPICHORD TITLE - 20% Smaller (text-7xl to text-6xl) */}
+            <span className="branding-text text-6xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
             <span className="text-[12px] font-black tracking-[0.5em] text-amber-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
           </div>
           <div className="flex items-center gap-10 bg-black/10 px-10 py-4 rounded-full border border-black/10 shadow-inner">
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">V4.06 DX POWER_CORE</span>
+                {/* VERSION ONLY - Removed DX POWER_CORE */}
+                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.07</span>
             </div>
           </div>
         </div>
 
         {/* INTERFACE MODULES - Hard Horizontal Buffer (px-96) for spacious layout */}
-        <div className="flex w-full gap-16 items-stretch justify-center px-96 flex-1 mt-6">
+        <div className="flex w-full gap-16 items-stretch justify-center px-96 flex-1 mt-4">
           <div className="w-[30%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
           </div>
@@ -373,7 +376,7 @@ const App: React.FC = () => {
         </div>
 
         {/* CLEAN FOOTER */}
-        <div className="pb-12 flex justify-end px-48 opacity-40">
+        <div className="pb-10 flex justify-end px-48 opacity-40">
             <div className="flex gap-10">
                 <div className="w-8 h-8 rounded-full bg-amber-900/20" />
                 <div className="w-8 h-8 rounded-full bg-amber-900/20" />
