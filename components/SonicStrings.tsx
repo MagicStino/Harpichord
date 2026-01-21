@@ -26,7 +26,7 @@ const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, 
   return (
     <div 
       ref={containerRef}
-      className={`relative w-44 h-[420px] sonic-strings-plate rounded-2xl border-[6px] border-[#8d7d5d] overflow-hidden transition-all shadow-xl ${
+      className={`relative w-72 h-[480px] sonic-strings-plate rounded-2xl border-[6px] border-[#8d7d5d] overflow-hidden transition-all shadow-xl ${
         useTouchpad ? 'brightness-110 ring-4 ring-amber-400' : 'hover:brightness-105'
       }`}
     >
@@ -60,28 +60,28 @@ const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, 
       <div className="absolute inset-0 flex flex-col justify-around pointer-events-none px-4">
         {strings.map(i => (
           <div key={i} className="flex justify-between items-center opacity-10">
-            <span className="text-[6px] font-black font-mono">{((stringsCount - 1) - i).toString().padStart(2, '0')}</span>
-            <div className="w-1 h-1 rounded-full bg-black" />
+            <span className="text-[7px] font-black font-mono">{((stringsCount - 1) - i).toString().padStart(2, '0')}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-black" />
           </div>
         ))}
       </div>
 
       {useTouchpad && (
         <div className="absolute top-6 right-6 flex items-center gap-3">
-            <span className="text-[9px] font-black text-red-900 uppercase tracking-tighter">TOUCHPAD</span>
-            <div className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_10px_red] animate-pulse" />
+            <span className="text-[10px] font-black text-red-900 uppercase tracking-tighter">TOUCHPAD</span>
+            <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_red] animate-pulse" />
         </div>
       )}
 
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-25">
-         <span className="branding-text text-2xl tracking-tighter">HARPICHORD</span>
-         <span className="text-[8px] font-black tracking-[0.4em] mt-1 italic">DX SYSTEM</span>
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-25">
+         <span className="branding-text text-3xl tracking-tighter">HARPICHORD</span>
+         <span className="text-[10px] font-black tracking-[0.4em] mt-1 italic uppercase">DX STRUM SYSTEM</span>
       </div>
 
       {!currentChord && !useTouchpad && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#c4b598]/30 backdrop-blur-[2px] z-20">
-          <div className="bg-amber-950/80 text-white p-4 rounded-xl border border-white/20 shadow-2xl">
-            <span className="text-[10px] uppercase font-black tracking-widest block text-center leading-tight">Select Chord<br/>First</span>
+          <div className="bg-amber-950/80 text-white p-6 rounded-xl border border-white/20 shadow-2xl">
+            <span className="text-[12px] uppercase font-black tracking-widest block text-center leading-tight">Select Chord<br/>First</span>
           </div>
         </div>
       )}

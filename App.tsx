@@ -85,7 +85,7 @@ const App: React.FC = () => {
   }, [state, initialized]);
 
   const updateScale = useCallback(() => {
-    const baseW = 1680;
+    const baseW = 1780; 
     const baseH = 1000; 
     const padding = 20;
     const ratio = Math.min((window.innerWidth - padding) / baseW, (window.innerHeight - padding) / baseH);
@@ -289,7 +289,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-amber-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.03 • 2026</span>
+            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.06 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-amber-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-amber-600 animate-ping" />
             </div>
@@ -306,18 +306,18 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* SCALE WRAPPER */}
+      {/* SCALE WRAPPER - Instrument body broadened, border-16px for thinner outer chrome */}
       <div 
         style={{ 
           transform: `scale(${scale})`, 
           transformOrigin: 'center center',
-          width: '1680px',
+          width: '1780px',
           height: '1000px',
           flexShrink: 0
         }} 
-        className="omnichord-body p-16 px-20 rounded-[7.5rem] border-[32px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
+        className="omnichord-body p-16 rounded-[7.5rem] border-[16px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
       >
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[960px] h-10 bg-black/5 rounded-b-[4rem] border-b border-black/5" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-10 bg-black/5 rounded-b-[4rem] border-b border-black/5" />
         
         {/* COMPACT HEADER */}
         <div className="flex justify-between items-start w-full px-24 pt-4">
@@ -329,18 +329,18 @@ const App: React.FC = () => {
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">V4.03 DX POWER_CORE</span>
+                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">V4.06 DX POWER_CORE</span>
             </div>
           </div>
         </div>
 
-        {/* INTERFACE MODULES - Increased px-32 to px-44 for extra side spacing from chrome */}
-        <div className="flex w-full gap-20 items-stretch justify-center px-44 flex-1 mt-6">
-          <div className="w-[30%] min-w-[420px]">
+        {/* INTERFACE MODULES - Hard Horizontal Buffer (px-96) for spacious layout */}
+        <div className="flex w-full gap-16 items-stretch justify-center px-96 flex-1 mt-6">
+          <div className="w-[30%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
           </div>
 
-          <div className="flex-1 flex flex-col gap-10 items-center">
+          <div className="flex-1 flex flex-col gap-10 items-center justify-center">
             <div className="w-full h-full bg-[#dcd0b8] rounded-[5rem] border-[12px] border-[#bdae93] shadow-[inset_0_25px_50px_rgba(0,0,0,0.2)] flex items-center justify-center p-8">
               <ChordGrid 
                 activeChord={state.currentChord} 
@@ -351,7 +351,7 @@ const App: React.FC = () => {
               />
             </div>
             
-            <div className="flex items-center gap-12">
+            <div className="flex items-center gap-12 mt-4">
                 <div className="w-48 h-[1.5px] bg-amber-900/20" />
                 <button onClick={handleKillChord} className="w-[90px] h-[90px] rounded-full bg-[#b00] border-[10px] border-[#800] shadow-[0_12px_0_#500] active:translate-y-2 active:shadow-none transition-all flex items-center justify-center cursor-pointer group relative overflow-hidden">
                   <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -361,7 +361,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-10">
+          <div className="flex flex-col items-center justify-center gap-10">
              <SonicStrings currentChord={state.currentChord} useTouchpad={state.useTouchpad} onTrigger={handleHarpTrigger} />
              <button onClick={() => handleStateChange({ useTouchpad: !state.useTouchpad })} className={`w-[90px] h-[90px] rounded-[2rem] border-[10px] transition-all flex items-center justify-center cursor-pointer shadow-[0_12px_0_#222] active:translate-y-2 active:shadow-none group ${state.useTouchpad ? 'bg-amber-600 border-amber-800' : 'bg-[#1a1a1a] border-[#0a0a0a]'}`}>
                 <div className="flex flex-col items-center leading-none text-white group-active:scale-90 transition-transform">
@@ -373,11 +373,11 @@ const App: React.FC = () => {
         </div>
 
         {/* CLEAN FOOTER */}
-        <div className="pb-12 flex justify-end px-32 opacity-40">
-            <div className="flex gap-8">
-                <div className="w-6 h-6 rounded-full bg-amber-900/30" />
-                <div className="w-6 h-6 rounded-full bg-amber-900/30" />
-                <div className="w-6 h-6 rounded-full bg-amber-900/30" />
+        <div className="pb-12 flex justify-end px-48 opacity-40">
+            <div className="flex gap-10">
+                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
+                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
+                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
             </div>
         </div>
       </div>
