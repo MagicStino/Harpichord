@@ -157,8 +157,9 @@ const App: React.FC = () => {
 
   const handleKillChord = useCallback(() => {
     audioEngine.stopChord(true);
+    audioEngine.stopRhythm();
     midiService.sendChord(null);
-    setState(prev => ({ ...prev, currentChord: null }));
+    setState(prev => ({ ...prev, currentChord: null, rhythm: RhythmPattern.NONE }));
   }, []);
 
   const handleStateChange = useCallback((updates: Partial<OmnichordState>) => {
@@ -289,7 +290,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-amber-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.07 • 2026</span>
+            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.08 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-amber-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-amber-600 animate-ping" />
             </div>
@@ -331,8 +332,8 @@ const App: React.FC = () => {
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                {/* VERSION ONLY - Removed DX POWER_CORE */}
-                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.07</span>
+                {/* VERSION ONLY */}
+                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.08</span>
             </div>
           </div>
         </div>
