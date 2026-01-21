@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { OmnichordState, ChordDefinition, RhythmPattern, DelayDivision } from './types';
 import { 
   MAJOR_CHORDS, MINOR_CHORDS, DOM7_CHORDS,
@@ -385,6 +386,7 @@ const App: React.FC = () => {
             </div>
         </div>
       </div>
+      <SpeedInsights />
     </div>
   );
 };
