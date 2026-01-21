@@ -243,7 +243,12 @@ class AudioEngine {
     const time = beatSec * mult;
     this.delayNodeL.delayTime.setTargetAtTime(time, this.ctx!.currentTime, 0.1);
     this.delayNodeR.delayTime.setTargetAtTime(time * (1 + spread * 0.1), this.ctx!.currentTime, 0.1);
-    this.delayFeedback.gain.setTargetAtTime(feedback * 0.95, this.ctx!.currentTime, 0.1);
+    
+    // User requested endless at 100% and much lighter at 51%.
+    // Mapping feedback with a curve (power of 1.7) ensures that 0.51 is ~0.3 (manageable) 
+    // while 1.0 is exactly 1.0 (endless).
+    const scaledFeedback = Math.pow(feedback, 1.7);
+    this.delayFeedback.gain.setTargetAtTime(scaledFeedback, this.ctx!.currentTime, 0.1);
     this.delayFilter.frequency.setTargetAtTime(200 + (tone * 14000), this.ctx!.currentTime, 0.1);
   }
 

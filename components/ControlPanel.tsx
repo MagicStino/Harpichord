@@ -50,8 +50,6 @@ const Knob: React.FC<KnobProps> = ({
 
   const rotation = -135 + value * 270;
   const sizeClass = size === 'sm' ? 'w-10 h-10' : size === 'lg' ? 'w-20 h-20' : 'w-14 h-14';
-  
-  // Increased label sizes by 2 points equivalent (approx 2.6px)
   const labelSizeClass = labelSize === 'sm' ? 'text-[11px]' : labelSize === 'base' ? 'text-[13px]' : 'text-[9.5px]';
 
   return (
@@ -221,6 +219,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                  <Knob label="TONE" size="sm" color="cyan-400" labelColor="text-cyan-400" value={state.delayTone} onChange={(v) => onChange({ delayTone: v })} />
                  <Knob label="SPREAD" size="sm" color="cyan-400" labelColor="text-cyan-400" value={state.delaySpread} onChange={(v) => onChange({ delaySpread: v })} />
               </div>
+              <div className="flex flex-col gap-2 pt-2 border-t border-cyan-500/10">
+                 <span className="text-[8px] text-cyan-500/60 font-black text-center tracking-widest">CHANNEL SENDS</span>
+                 <div className="grid grid-cols-3 gap-1 justify-items-center">
+                    <Knob label="CHORD" size="sm" color="cyan-400" labelColor="text-cyan-400/50" value={state.chordDelaySend} onChange={(v) => onChange({ chordDelaySend: v })} />
+                    <Knob label="HARP" size="sm" color="cyan-400" labelColor="text-cyan-400/50" value={state.harpDelaySend} onChange={(v) => onChange({ harpDelaySend: v })} />
+                    <Knob label="DRUM" size="sm" color="cyan-400" labelColor="text-cyan-400/50" value={state.rhythmDelaySend} onChange={(v) => onChange({ rhythmDelaySend: v })} />
+                 </div>
+              </div>
             </div>
 
             <div className="bg-[#1a1a1a] p-4 rounded-3xl border-2 border-purple-500/50 space-y-4">
@@ -232,6 +238,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                  <Knob label="DAMP" size="sm" color="purple-400" labelColor="text-purple-400" value={state.reverbDamp} onChange={(v) => onChange({ reverbDamp: v })} />
                  <Knob label="COLOR" size="sm" color="purple-400" labelColor="text-purple-400" value={state.reverbColor} onChange={(v) => onChange({ reverbColor: v })} />
                </div>
+               <div className="flex flex-col gap-2 pt-2 border-t border-purple-500/10">
+                 <span className="text-[8px] text-purple-500/60 font-black text-center tracking-widest">CHANNEL SENDS</span>
+                 <div className="grid grid-cols-3 gap-1 justify-items-center">
+                    <Knob label="CHORD" size="sm" color="purple-400" labelColor="text-purple-400/50" value={state.chordReverbSend} onChange={(v) => onChange({ chordReverbSend: v })} />
+                    <Knob label="HARP" size="sm" color="purple-400" labelColor="text-purple-400/50" value={state.harpReverbSend} onChange={(v) => onChange({ harpReverbSend: v })} />
+                    <Knob label="DRUM" size="sm" color="purple-400" labelColor="text-purple-400/50" value={state.rhythmReverbSend} onChange={(v) => onChange({ rhythmReverbSend: v })} />
+                 </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -256,6 +270,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                           ))}
                         </div>
                       </div>
+                   </div>
+                </div>
+                <div className="flex flex-col gap-2 pt-4 border-t border-amber-600/10">
+                   <h3 className="text-[11px] text-amber-600/80 tracking-widest text-center uppercase font-black">VIBRATO / LFO</h3>
+                   <div className="grid grid-cols-2 gap-4 justify-items-center">
+                      <Knob label="AMOUNT" size="sm" color="amber-500" labelColor="text-amber-500/60" value={state.vibratoAmount} onChange={(v) => onChange({ vibratoAmount: v })} />
+                      <Knob label="RATE" size="sm" color="amber-500" labelColor="text-amber-500/60" value={state.vibratoRate / 20} onChange={(v) => onChange({ vibratoRate: v * 20 })} />
                    </div>
                 </div>
              </div>
