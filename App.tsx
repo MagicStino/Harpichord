@@ -11,6 +11,7 @@ import { midiService } from './services/midiService';
 import ChordGrid from './components/ChordGrid';
 import SonicStrings from './components/SonicStrings';
 import ControlPanel from './components/ControlPanel';
+import PianoKeyboard from './components/PianoKeyboard';
 
 const STORAGE_KEY = 'harpichord_v1_state';
 
@@ -64,6 +65,7 @@ const App: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
   const [midiError, setMidiError] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
+  const [lastStrumNote, setLastStrumNote] = useState<{midi: number, time: number} | null>(null);
   const lastZone = useRef<number | null>(null);
 
   useEffect(() => {
@@ -135,8 +137,13 @@ const App: React.FC = () => {
     if (state.currentChord) {
       audioEngine.playHarpNote(state.currentChord, index);
       midiService.sendHarpNote(index);
+      
+      const intervalIndex = index % state.currentChord.intervals.length;
+      const octaveOffset = Math.floor(index / state.currentChord.intervals.length);
+      const midiNote = 60 + (state.octave * 12) + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
+      setLastStrumNote({ midi: midiNote, time: Date.now() });
     }
-  }, [state.currentChord]);
+  }, [state.currentChord, state.octave]);
 
   const initAudio = useCallback(() => {
     if (!initialized) {
@@ -160,6 +167,7 @@ const App: React.FC = () => {
     audioEngine.stopRhythm();
     midiService.sendChord(null);
     setState(prev => ({ ...prev, currentChord: null, rhythm: RhythmPattern.NONE }));
+    setLastStrumNote(null);
   }, []);
 
   const handleStateChange = useCallback((updates: Partial<OmnichordState>) => {
@@ -227,6 +235,7 @@ const App: React.FC = () => {
     setState(INITIAL_STATE);
     syncEngine(INITIAL_STATE);
     localStorage.removeItem(STORAGE_KEY);
+    setLastStrumNote(null);
   }, [syncEngine]);
 
   useEffect(() => {
@@ -290,7 +299,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-amber-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.08 • 2026</span>
+            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.15 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-amber-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-amber-600 animate-ping" />
             </div>
@@ -307,7 +316,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* SCALE WRAPPER - Increased height and width, border-16px for thinner outer chrome */}
       <div 
         style={{ 
           transform: `scale(${scale})`, 
@@ -316,15 +324,12 @@ const App: React.FC = () => {
           height: '1000px',
           flexShrink: 0
         }} 
-        className="omnichord-body pt-10 pb-16 px-16 rounded-[7.5rem] border-[16px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
+        className="omnichord-body pt-10 pb-6 px-16 rounded-[7.5rem] border-[4px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
       >
-        {/* SMALLER TOP DECORATION BUMPER */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
-        {/* COMPACT HEADER - Moved up (pt-0) */}
         <div className="flex justify-between items-start w-full px-24 pt-0">
           <div className="flex flex-col">
-            {/* HARPICHORD TITLE - 20% Smaller (text-7xl to text-6xl) */}
             <span className="branding-text text-6xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
             <span className="text-[12px] font-black tracking-[0.5em] text-amber-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
           </div>
@@ -332,20 +337,18 @@ const App: React.FC = () => {
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                {/* VERSION ONLY */}
-                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.08</span>
+                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.15</span>
             </div>
           </div>
         </div>
 
-        {/* INTERFACE MODULES - Hard Horizontal Buffer (px-96) for spacious layout */}
-        <div className="flex w-full gap-16 items-stretch justify-center px-96 flex-1 mt-4">
-          <div className="w-[30%] min-w-[440px]">
+        <div className="flex w-full gap-16 items-stretch justify-center px-16 flex-1 mt-4">
+          <div className="w-[28%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
           </div>
 
-          <div className="flex-1 flex flex-col gap-10 items-center justify-center">
-            <div className="w-full h-full bg-[#dcd0b8] rounded-[5rem] border-[12px] border-[#bdae93] shadow-[inset_0_25px_50px_rgba(0,0,0,0.2)] flex items-center justify-center p-8">
+          <div className="flex-1 flex flex-col gap-4 items-center justify-start relative">
+            <div className="w-full h-[580px] bg-[#dcd0b8] rounded-[5rem] border-[4px] border-[#bdae93] shadow-[inset_0_25px_50px_rgba(0,0,0,0.2)] flex items-center justify-center p-8">
               <ChordGrid 
                 activeChord={state.currentChord} 
                 currentPage={state.chordPage}
@@ -355,13 +358,26 @@ const App: React.FC = () => {
               />
             </div>
             
-            <div className="flex items-center gap-12 mt-4">
-                <div className="w-48 h-[1.5px] bg-amber-900/20" />
-                <button onClick={handleKillChord} className="w-[90px] h-[90px] rounded-full bg-[#b00] border-[10px] border-[#800] shadow-[0_12px_0_#500] active:translate-y-2 active:shadow-none transition-all flex items-center justify-center cursor-pointer group relative overflow-hidden">
-                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="text-[14px] font-black text-white uppercase text-center leading-tight tracking-widest group-active:scale-90 transition-transform relative z-10">RESET<br/><span className="text-[11px] opacity-60 font-bold">KILL</span></span>
-                </button>
-                <div className="w-48 h-[1.5px] bg-amber-900/20" />
+            <div className="flex flex-col items-center gap-6 w-full">
+                <div className="flex items-center gap-12">
+                    <div className="w-40 h-[1.5px] bg-amber-900/20" />
+                    <button onClick={handleKillChord} className="w-[58px] h-[58px] rounded-full bg-[#b00] border-[4px] border-[#800] shadow-[0_8px_0_#500] active:translate-y-2 active:shadow-none transition-all flex items-center justify-center cursor-pointer group relative overflow-hidden">
+                      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[10px] font-black text-white uppercase text-center leading-tight tracking-widest group-active:scale-90 transition-transform relative z-10">KILL<br/><span className="text-[8px] opacity-60 font-bold">RESET</span></span>
+                    </button>
+                    <div className="w-40 h-[1.5px] bg-amber-900/20" />
+                </div>
+
+                <div className="w-[900px] mt-[15px]">
+                    <div className="w-full bg-[#dcd0b8] rounded-[3rem] border-[4px] border-[#bdae93] shadow-[inset_0_8px_16px_rgba(0,0,0,0.1),0_10px_30px_rgba(0,0,0,0.15)] p-3">
+                      <PianoKeyboard 
+                        currentChord={state.currentChord} 
+                        octave={state.octave} 
+                        bassEnabled={state.bassEnabled}
+                        lastStrumHit={lastStrumNote}
+                      />
+                    </div>
+                </div>
             </div>
           </div>
 
@@ -375,15 +391,7 @@ const App: React.FC = () => {
              </button>
           </div>
         </div>
-
-        {/* CLEAN FOOTER */}
-        <div className="pb-10 flex justify-end px-48 opacity-40">
-            <div className="flex gap-10">
-                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
-                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
-                <div className="w-8 h-8 rounded-full bg-amber-900/20" />
-            </div>
-        </div>
+        <div className="h-6" />
       </div>
     </div>
   );
