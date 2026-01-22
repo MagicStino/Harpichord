@@ -5,20 +5,67 @@ interface SonicStringsProps {
   currentChord: ChordDefinition | null;
   useTouchpad: boolean;
   onTrigger: (index: number) => void;
+  lastTriggeredIndex?: { index: number, time: number } | null;
 }
 
-const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, onTrigger }) => {
+const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, onTrigger, lastTriggeredIndex }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeStrings, setActiveStrings] = useState<number[]>([]);
+  
+  // Track highlights by index -> timestamp to prevent leaks
+  const [highlights, setHighlights] = useState<Record<number, number>>({});
 
   // 14 strings for 4 octaves as requested
   const stringsCount = 14;
 
+  // Pruning Loop: Clean up old highlights every 50ms
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const expiration = 150; // ms to stay highlighted
+      
+      setHighlights(prev => {
+        const next = { ...prev };
+        let changed = false;
+        
+        Object.keys(next).forEach(key => {
+          const idx = Number(key);
+          if (now - next[idx] > expiration) {
+            delete next[idx];
+            changed = true;
+          }
+        });
+        
+        return changed ? next : prev;
+      });
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Flush all highlights on mode or chord change
+  useEffect(() => {
+    setHighlights({});
+  }, [useTouchpad, currentChord]);
+
+  // Synchronize with external triggers (like the global touchpad strum)
+  useEffect(() => {
+    if (lastTriggeredIndex) {
+      const idx = lastTriggeredIndex.index;
+      setHighlights(prev => ({
+        ...prev,
+        [idx]: Date.now()
+      }));
+    }
+  }, [lastTriggeredIndex]);
+
+  // Manual strum (hovering over the plate directly)
   const handlePointerEnter = (e: React.PointerEvent, index: number) => {
     if (useTouchpad) return;
     onTrigger(index);
-    setActiveStrings(prev => [...prev, index]);
-    setTimeout(() => setActiveStrings(prev => prev.filter(s => s !== index)), 150);
+    setHighlights(prev => ({
+      ...prev,
+      [index]: Date.now()
+    }));
   };
 
   const strings = Array.from({ length: stringsCount }).map((_, i) => i);
@@ -30,33 +77,44 @@ const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, 
         useTouchpad ? 'brightness-110 ring-4 ring-amber-400' : 'hover:brightness-105'
       }`}
     >
+      {/* Visual background lines */}
       <div className="absolute inset-0 flex flex-col justify-around py-2 opacity-40 pointer-events-none">
         {strings.map(i => (
           <div key={i} className="h-[2px] w-full bg-black/30 shadow-inner" />
         ))}
       </div>
 
+      {/* Interaction layer */}
       <div className="absolute inset-0 flex flex-col items-stretch">
-        {strings.map(i => (
-          <div 
-            key={i} 
-            className="flex-1 cursor-pointer relative group"
-            onPointerEnter={(e) => handlePointerEnter(e, (stringsCount - 1) - i)}
-          >
+        {strings.map(i => {
+          const stringIdx = (stringsCount - 1) - i;
+          const isHighlighted = highlights[stringIdx] !== undefined;
+          
+          return (
             <div 
-              className={`absolute inset-0 transition-all duration-200 pointer-events-none ${
-                activeStrings.includes((stringsCount - 1) - i) 
-                  ? 'bg-gradient-to-r from-transparent via-white/40 to-transparent scale-y-110 opacity-100' 
-                  : 'opacity-0'
-              }`}
-            />
-            <div className={`h-[1px] w-full absolute top-1/2 -translate-y-1/2 transition-colors ${
-                currentChord ? 'bg-amber-900/20' : 'bg-black/5'
-            }`} />
-          </div>
-        ))}
+              key={i} 
+              className="flex-1 cursor-pointer relative group"
+              onPointerEnter={(e) => handlePointerEnter(e, stringIdx)}
+            >
+              {/* Highlight Overlay */}
+              <div 
+                className={`absolute inset-0 transition-opacity duration-150 pointer-events-none ${
+                  isHighlighted 
+                    ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-100' 
+                    : 'opacity-0'
+                }`}
+              />
+              
+              {/* String Wire Visual */}
+              <div className={`h-[1px] w-full absolute top-1/2 -translate-y-1/2 transition-colors ${
+                  currentChord ? 'bg-amber-900/20' : 'bg-black/5'
+              }`} />
+            </div>
+          );
+        })}
       </div>
 
+      {/* Grid labels */}
       <div className="absolute inset-0 flex flex-col justify-around pointer-events-none px-4">
         {strings.map(i => (
           <div key={i} className="flex justify-between items-center opacity-10">
@@ -66,6 +124,7 @@ const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, 
         ))}
       </div>
 
+      {/* Mode Indicator */}
       {useTouchpad && (
         <div className="absolute top-6 right-6 flex items-center gap-3">
             <span className="text-[10px] font-black text-red-900 uppercase tracking-tighter">TOUCHPAD</span>
@@ -73,11 +132,13 @@ const SonicStrings: React.FC<SonicStringsProps> = ({ currentChord, useTouchpad, 
         </div>
       )}
 
+      {/* Branding */}
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-25">
          <span className="branding-text text-3xl tracking-tighter">HARPICHORD</span>
          <span className="text-[10px] font-black tracking-[0.4em] mt-1 italic uppercase">DX STRUM SYSTEM</span>
       </div>
 
+      {/* Locked Overlay */}
       {!currentChord && !useTouchpad && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#c4b598]/30 backdrop-blur-[2px] z-20">
           <div className="bg-amber-950/80 text-white p-6 rounded-xl border border-white/20 shadow-2xl">

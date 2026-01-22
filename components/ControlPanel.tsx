@@ -140,7 +140,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                     <Knob label="CUT" size="sm" value={state.harpCutoff} onChange={(v) => onChange({ harpCutoff: v })} />
                     <Knob label="SUSTAIN" size="sm" value={state.sustain} onChange={(v) => onChange({ sustain: v })} />
                     <div className="flex flex-col items-center gap-1 pb-1">
-                        <span className="text-[8px] opacity-60">OCTAVE</span>
+                        <span className="text-[9.5px] font-black opacity-60 uppercase tracking-widest">OCTAVE</span>
                         <div className="text-[11px] bg-black/10 px-2 py-0.5 rounded border border-black/5">{state.harpOctave}</div>
                     </div>
                 </div>
@@ -156,13 +156,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                     </button>
                     <div className="flex flex-col items-center">
                         <Knob label="" size="sm" value={state.bassWaveformMix} onChange={(v) => onChange({ bassWaveformMix: v })} />
-                        <span className="text-[8px] font-black opacity-60 mt-1 uppercase text-center leading-tight">SINE / SAW</span>
+                        <span className="text-[9.5px] font-black opacity-60 mt-1 uppercase text-center leading-tight tracking-widest">SINE / SAW</span>
                     </div>
                 </div>
             </div>
 
             <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none block">MASTER TUBE</span>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none block">MASTER TUBE</span>
+                <button 
+                  onClick={() => onChange({ tubeEnabled: !state.tubeEnabled })} 
+                  className={`px-3 py-1 rounded-full border-2 text-[8px] font-black transition-all ${state.tubeEnabled ? 'bg-orange-600 border-orange-800 text-black shadow-[0_0_10px_rgba(234,88,12,0.3)]' : 'bg-black/10 border-black/20 text-black/40'}`}
+                >
+                  {state.tubeEnabled ? 'ACTIVE' : 'BYPASS'}
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-1 mb-2">
+                {(['clean', 'soft', 'warm', 'hot'] as const).map(p => (
+                  <button 
+                    key={p} 
+                    onClick={() => applyTubePreset(p)} 
+                    className={`py-1 rounded text-[9px] font-black border-2 transition-all uppercase ${state.tubePreset === p ? 'bg-orange-500 text-black border-orange-700' : 'bg-white/40 border-orange-900/10 text-orange-900/60 hover:bg-white/60'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
               <div className="grid grid-cols-2 gap-4 justify-items-center">
                 <Knob label="DRIVE" size="sm" color="orange-500" value={state.tubeDrive} onChange={(v) => onChange({ tubeDrive: v })} />
                 <Knob label="WET" size="sm" color="orange-500" value={state.tubeWet} onChange={(v) => onChange({ tubeWet: v })} />
@@ -237,16 +258,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
              <div className="bg-[#1a1a1a] p-5 rounded-3xl border-2 border-orange-400/30 space-y-4">
                 <h3 className="text-[12px] text-amber-300 tracking-widest text-center uppercase font-black">OSC WAVEFORMS</h3>
                 <div className="flex gap-4">
-                  <div className="flex-1 flex flex-col gap-1">
-                    <span className="text-[10px] text-center text-amber-300/70 uppercase font-black">CHORD</span>
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <span className="text-[11px] text-center text-amber-300/70 uppercase font-black tracking-widest mb-1">CHORD</span>
                     {['sine', 'triangle', 'square', 'sawtooth'].map(w => (
-                      <button key={w} onClick={() => onChange({ chordWaveform: w as WaveformType })} className={`py-1.5 rounded text-[10px] font-black border-2 transition-all ${state.chordWaveform === w ? 'bg-orange-600 text-black border-orange-400' : 'text-orange-800 border-orange-900/40'}`}>{w}</button>
+                      <button key={w} onClick={() => onChange({ chordWaveform: w as WaveformType })} className={`py-2 rounded text-[12px] font-black border-2 transition-all uppercase tracking-wider ${state.chordWaveform === w ? 'bg-orange-600 text-black border-orange-400 shadow-[0_0_12px_rgba(234,88,12,0.3)]' : 'text-orange-800 border-orange-900/40'}`}>{w}</button>
                     ))}
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <span className="text-[10px] text-center text-amber-300/70 uppercase font-black">HARP</span>
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <span className="text-[11px] text-center text-amber-300/70 uppercase font-black tracking-widest mb-1">HARP</span>
                     {['sine', 'triangle', 'square', 'sawtooth'].map(w => (
-                      <button key={w} onClick={() => onChange({ harpWaveform: w as WaveformType })} className={`py-1.5 rounded text-[10px] font-black border-2 transition-all ${state.harpWaveform === w ? 'bg-orange-600 text-black border-orange-400' : 'text-orange-800 border-orange-900/40'}`}>{w}</button>
+                      <button key={w} onClick={() => onChange({ harpWaveform: w as WaveformType })} className={`py-2 rounded text-[12px] font-black border-2 transition-all uppercase tracking-wider ${state.harpWaveform === w ? 'bg-orange-600 text-black border-orange-400 shadow-[0_0_12px_rgba(234,88,12,0.3)]' : 'text-orange-800 border-orange-900/40'}`}>{w}</button>
                     ))}
                   </div>
                 </div>

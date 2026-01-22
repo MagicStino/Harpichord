@@ -65,6 +65,7 @@ const App: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
   const [scale, setScale] = useState(1);
   const [lastStrumNote, setLastStrumNote] = useState<{midi: number, time: number} | null>(null);
+  const [touchpadStrumIndex, setTouchpadStrumIndex] = useState<{index: number, time: number} | null>(null);
   const lastZone = useRef<number | null>(null);
 
   useEffect(() => {
@@ -137,8 +138,36 @@ const App: React.FC = () => {
       const octaveOffset = Math.floor(index / state.currentChord.intervals.length);
       const midiNote = 60 + (state.octave + state.harpOctave) * 12 + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
       setLastStrumNote({ midi: midiNote, time: Date.now() });
+      setTouchpadStrumIndex({ index, time: Date.now() });
     }
   }, [state.currentChord, state.octave, state.harpOctave]);
+
+  // Sensory Touchpad Global Listener
+  useEffect(() => {
+    if (!state.useTouchpad) {
+      lastZone.current = null;
+      return;
+    }
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const stringsCount = 14;
+      const height = window.innerHeight;
+      // Map vertical Y to one of 14 segments
+      const segment = Math.floor((e.clientY / height) * stringsCount);
+      const clampedSegment = Math.max(0, Math.min(stringsCount - 1, segment));
+      // segments are 0 (top) to 13 (bottom). 
+      // Harp triggers usually treat bottom as low notes, top as high.
+      const targetString = (stringsCount - 1) - clampedSegment;
+
+      if (lastZone.current !== targetString) {
+        handleHarpTrigger(targetString);
+        lastZone.current = targetString;
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, [state.useTouchpad, handleHarpTrigger]);
 
   const handleKillChord = useCallback(() => {
     audioEngine.stopChord(true);
@@ -146,6 +175,7 @@ const App: React.FC = () => {
     midiService.sendChord(null);
     setState(prev => ({ ...prev, currentChord: null, rhythm: RhythmPattern.NONE }));
     setLastStrumNote(null);
+    setTouchpadStrumIndex(null);
   }, []);
 
   const handleStateChange = useCallback((updates: Partial<OmnichordState>) => {
@@ -193,7 +223,6 @@ const App: React.FC = () => {
       }
       if (updates.vibratoAmount !== undefined || updates.vibratoRate !== undefined) {
           audioEngine.setVibrato(newState.vibratoAmount, newState.vibratoRate);
-          // Optimized: Removed playChord re-trigger to allow smooth modulation
       }
       if (updates.delayDivision !== undefined || updates.delayFeedback !== undefined || updates.delayTone !== undefined || updates.delaySpread !== undefined) {
           audioEngine.updateDelay(newState.delayDivision, newState.delayFeedback, newState.delayTone, newState.delaySpread);
@@ -218,6 +247,7 @@ const App: React.FC = () => {
     syncEngine(INITIAL_STATE);
     localStorage.removeItem(STORAGE_KEY);
     setLastStrumNote(null);
+    setTouchpadStrumIndex(null);
   }, [syncEngine]);
 
   useEffect(() => {
@@ -287,15 +317,15 @@ const App: React.FC = () => {
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
-        {/* LOGO HEADER V4.33: Lifted components up to ensure piano fits frame */}
+        {/* LOGO HEADER V4.38 */}
         <div className="flex justify-between items-start w-full px-40 pt-0 relative min-h-[100px]">
-          {/* Left - Power/Version module lowered slightly (mt-1.5) */}
+          {/* Left - Power/Version module */}
           <div className="w-[440px] flex items-center gap-6 mt-1.5">
             <div className="flex items-center gap-6 bg-black/10 px-6 py-2 rounded-full border border-black/10 shadow-inner">
               <div className={`w-5 h-5 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.6)]' : 'bg-green-950'}`} />
               <div className="w-px h-6 bg-black/15" />
               <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-orange-900/60 tracking-[0.2em] uppercase leading-none">V4.33</span>
+                  <span className="text-[10px] font-black text-orange-900/60 tracking-[0.2em] uppercase leading-none">V4.38</span>
               </div>
             </div>
             <div className="flex flex-col">
@@ -304,19 +334,19 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Center - Branding Logo remains anchored */}
+          {/* Center - Branding Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
             <span className="branding-text text-6xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
             <span className="text-[12px] font-black tracking-[0.5em] text-orange-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
           </div>
 
-          {/* Right - Spec text lifted back to mt-1.5 */}
+          {/* Right - Spec text */}
           <div className="w-[300px] flex justify-end mt-1.5">
             <span className="text-[9px] font-black tracking-[0.2em] text-orange-900/10 uppercase italic">MADE IN THE NETHERLANDS</span>
           </div>
         </div>
 
-        {/* Main interactive area LIFTED back up (mt-2 instead of mt-[26px]) to prevent piano escaping */}
+        {/* Main interactive area */}
         <div className="flex w-full gap-16 items-start justify-center px-40 flex-1 mt-2">
           <div className="w-[28%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
@@ -357,7 +387,12 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center justify-center gap-10">
-             <SonicStrings currentChord={state.currentChord} useTouchpad={state.useTouchpad} onTrigger={handleHarpTrigger} />
+             <SonicStrings 
+                currentChord={state.currentChord} 
+                useTouchpad={state.useTouchpad} 
+                onTrigger={handleHarpTrigger}
+                lastTriggeredIndex={touchpadStrumIndex}
+             />
              <button onClick={() => handleStateChange({ useTouchpad: !state.useTouchpad })} className={`w-[90px] h-[90px] rounded-[2rem] border-[4px] border-black transition-all flex items-center justify-center cursor-pointer shadow-[0_12px_0_#222] active:translate-y-2 active:shadow-none group ${state.useTouchpad ? 'bg-orange-600 border-orange-800' : 'bg-[#1a1a1a] border-[#0a0a0a]'}`}>
                 <div className="flex flex-col items-center leading-none text-white group-active:scale-90 transition-transform text-center">
                     <span className={`text-[12px] font-black tracking-widest mb-2 ${state.useTouchpad ? 'text-black' : 'opacity-40'}`}>TOUCH</span>
