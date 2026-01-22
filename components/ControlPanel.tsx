@@ -98,7 +98,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#dcd0b8] rounded-[2.5rem] border-[4px] border-[#bdae93] shadow-[inset_0_4px_10px_rgba(0,0,0,0.1)] text-orange-950 font-black uppercase tracking-tight overflow-hidden">
+    <div className="flex flex-col h-fit max-h-[880px] bg-[#dcd0b8] rounded-[2.5rem] border-[4px] border-[#bdae93] shadow-[inset_0_4px_10px_rgba(0,0,0,0.1)] text-orange-950 font-black uppercase tracking-tight overflow-hidden">
       
       <div className="flex border-b border-black/5 bg-black/5">
         {(['MAIN', 'DRUMS', 'FX', 'SOUND'] as const).map(tab => (
@@ -118,7 +118,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
         {activeTab === 'MAIN' ? (
           <>
             {/* CHORD SECTION */}
-            <div className="bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20 space-y-2">
+            <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none block mb-1">CHORD SECTION</span>
                 <div className="grid grid-cols-2 gap-2 justify-items-center">
                    <Knob label="CHORD VOL" size="sm" value={state.chordVolume} onChange={(v) => onChange({ chordVolume: v })} />
@@ -127,7 +127,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
             </div>
 
             {/* HARP SECTION */}
-            <div className="bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20 space-y-3">
+            <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-3">
                 <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none">HARP MODULE</span>
                     <div className="flex gap-1">
@@ -154,7 +154,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
             </div>
 
             {/* BASS SECTION */}
-            <div className="bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20 space-y-3">
+            <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none block">BASS MODULE</span>
                 <div className="grid grid-cols-3 gap-2 justify-items-center items-center">
                     <Knob label="BASS VOL" size="sm" value={state.bassVolume} onChange={(v) => onChange({ bassVolume: v })} />
@@ -173,7 +173,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
             </div>
 
             {/* TUBE SECTION */}
-            <div className="bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20 space-y-3">
+            <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-3">
               <div className="flex justify-between items-center">
                  <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none">MASTER TUBE</span>
                  <button 
@@ -202,8 +202,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
           </>
         ) : activeTab === 'DRUMS' ? (
           <div className="flex flex-col gap-4 py-1">
-             {/* TEMPO MODULE TOP */}
-             <div className="flex flex-col bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20 gap-2">
+             <div className="flex flex-col bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 gap-2">
                 <div className="flex justify-between items-center px-2">
                     <label className="text-[11px] font-black opacity-60 tracking-widest">TEMPO BPM</label>
                     <input 
@@ -220,7 +219,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                 </div>
              </div>
 
-             <div className="grid grid-cols-2 gap-2 justify-items-center bg-orange-950/5 p-3 rounded-2xl border-2 border-orange-950/20">
+             <div className="grid grid-cols-2 gap-2 justify-items-center bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20">
                 <Knob label="DRUMS VOL" size="sm" value={state.rhythmVolume} onChange={(v) => onChange({ rhythmVolume: v })} />
                 <Knob label="DRUM CUT" size="sm" value={state.rhythmCutoff} onChange={(v) => onChange({ rhythmCutoff: v })} />
              </div>
@@ -235,7 +234,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
           </div>
         ) : activeTab === 'FX' ? (
           <div className="flex flex-col gap-4 py-2">
-            {/* DELAY MODULE */}
             <div className="bg-[#1a1a1a] p-4 rounded-3xl border-2 border-cyan-500/50 space-y-4">
               <div className="flex flex-col gap-2 border-b-2 border-cyan-500/20 pb-2">
                  <h3 className="text-[11px] text-cyan-400 italic font-black uppercase tracking-widest">WALHAHA DELAY</h3>
@@ -263,7 +261,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
               </div>
             </div>
 
-            {/* REVERB MODULE */}
             <div className="bg-[#1a1a1a] p-4 rounded-3xl border-2 border-purple-500/50 space-y-4">
                <div className="border-b-2 border-purple-500/20 pb-2">
                   <h3 className="text-[11px] text-purple-400 italic font-black uppercase tracking-widest">HALDADA REVERB</h3>
@@ -284,10 +281,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
           <div className="flex flex-col gap-6 py-2">
              <div className="bg-[#1a1a1a] p-5 rounded-3xl border-2 border-orange-400/30 space-y-4">
                 <div className="space-y-2">
-                   <h3 className="text-[12px] text-orange-400 tracking-widest text-center uppercase font-black">OSC WAVEFORMS</h3>
+                   <h3 className="text-[12px] text-amber-300 tracking-widest text-center uppercase font-black">OSC WAVEFORMS</h3>
                    <div className="flex gap-4">
                       <div className="flex-1 flex flex-col gap-1">
-                        <span className="text-[10px] text-center text-orange-400/60 font-black uppercase">CHORD</span>
+                        <span className="text-[10px] text-center text-amber-300/70 font-black uppercase">CHORD</span>
                         <div className="grid grid-cols-1 gap-1">
                           {['sine', 'triangle', 'square', 'sawtooth'].map(w => (
                             <button key={w} onClick={() => onChange({ chordWaveform: w as WaveformType })} className={`py-1.5 rounded text-[10px] font-black border-2 transition-all ${state.chordWaveform === w ? 'bg-orange-600 text-black border-orange-400' : 'text-orange-800 border-orange-900/40 hover:text-orange-500'}`}>{w}</button>
@@ -295,7 +292,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                         </div>
                       </div>
                       <div className="flex-1 flex flex-col gap-1">
-                        <span className="text-[10px] text-center text-orange-400/60 font-black uppercase">HARP</span>
+                        <span className="text-[10px] text-center text-amber-300/70 font-black uppercase">HARP</span>
                         <div className="grid grid-cols-1 gap-1">
                           {['sine', 'triangle', 'square', 'sawtooth'].map(w => (
                             <button key={w} onClick={() => onChange({ harpWaveform: w as WaveformType })} className={`py-1.5 rounded text-[10px] font-black border-2 transition-all ${state.harpWaveform === w ? 'bg-orange-600 text-black border-orange-400' : 'text-orange-800 border-orange-900/40 hover:text-orange-500'}`}>{w}</button>
@@ -305,10 +302,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
                    </div>
                 </div>
                 <div className="flex flex-col gap-2 pt-4 border-t-2 border-orange-600/10">
-                   <h3 className="text-[11px] text-orange-400 tracking-widest text-center uppercase font-black">VIBRATO / LFO</h3>
+                   <h3 className="text-[11px] text-amber-300 tracking-widest text-center uppercase font-black">VIBRATO / LFO</h3>
                    <div className="grid grid-cols-2 gap-4 justify-items-center">
-                      <Knob label="AMOUNT" size="sm" color="orange-400" labelColor="text-orange-400/60" value={state.vibratoAmount} onChange={(v) => onChange({ vibratoAmount: v })} />
-                      <Knob label="RATE" size="sm" color="orange-400" labelColor="text-orange-400/60" value={state.vibratoRate / 20} onChange={(v) => onChange({ vibratoRate: v * 20 })} />
+                      <Knob label="AMOUNT" size="sm" color="orange-400" labelColor="text-amber-300/80" value={state.vibratoAmount} onChange={(v) => onChange({ vibratoAmount: v })} />
+                      <Knob label="RATE" size="sm" color="orange-400" labelColor="text-amber-300/80" value={state.vibratoRate / 20} onChange={(v) => onChange({ vibratoRate: v * 20 })} />
                    </div>
                 </div>
              </div>

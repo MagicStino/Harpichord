@@ -18,10 +18,10 @@ const STORAGE_KEY = 'harpichord_v1_state';
 const INITIAL_STATE: OmnichordState = {
   currentChord: null,
   chordPage: 0,
-  chordVolume: 0.50,   // Standardized to 50%
-  harpVolume: 0.50,    // Standardized to 50%
-  rhythmVolume: 0.50,  // Standardized to 50%
-  bassVolume: 0.50,    // Standardized to 50%
+  chordVolume: 0.50,   
+  harpVolume: 0.50,    
+  rhythmVolume: 0.50,  
+  bassVolume: 0.50,    
   sustain: 0.4,
   tempo: 120,
   rhythm: RhythmPattern.NONE,
@@ -29,11 +29,11 @@ const INITIAL_STATE: OmnichordState = {
   useTouchpad: false,
   octave: 0,
   harpOctave: -1, 
-  chordCutoff: 1.0,    // Disabled (Fully Open)
-  harpCutoff: 1.0,     // Disabled (Fully Open)
-  rhythmCutoff: 1.0,   // Disabled (Fully Open)
-  bassEnabled: false,  // OFF by default
-  bassWaveformMix: 0.0, // Pure Sine wave
+  chordCutoff: 1.0,    
+  harpCutoff: 1.0,     
+  rhythmCutoff: 1.0,   
+  bassEnabled: false,  
+  bassWaveformMix: 0.0, 
   // Tube Saturation
   tubeEnabled: false,
   tubeDrive: 0.2,
@@ -309,7 +309,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-orange-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-orange-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.20 • 2026</span>
+            <span className="text-orange-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.21 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-orange-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-orange-600 animate-ping" />
             </div>
@@ -347,12 +347,13 @@ const App: React.FC = () => {
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-black text-orange-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.20</span>
+                <span className="text-[11px] font-black text-orange-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.21</span>
             </div>
           </div>
         </div>
 
-        <div className="flex w-full gap-16 items-stretch justify-center px-16 flex-1 mt-4">
+        {/* Changed from items-stretch to items-start to prevent ControlPanel from being forced tall */}
+        <div className="flex w-full gap-16 items-start justify-center px-16 flex-1 mt-4">
           <div className="w-[28%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
           </div>
