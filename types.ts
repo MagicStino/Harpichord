@@ -5,7 +5,7 @@ export interface ChordDefinition {
   label: string;
   intervals: number[];
   key: string;
-  modeName: string; // Added for LCD display
+  modeName: string;
 }
 
 export enum RhythmPattern {
@@ -32,7 +32,7 @@ export type WaveformType = 'square' | 'sawtooth' | 'triangle' | 'sine';
 
 export interface OmnichordState {
   currentChord: ChordDefinition | null;
-  chordPage: number; // 0, 1, or 2
+  chordPage: number;
   chordVolume: number;
   harpVolume: number;
   rhythmVolume: number;
@@ -43,43 +43,32 @@ export interface OmnichordState {
   isPlaying: boolean;
   useTouchpad: boolean;
   octave: number;
-  harpOctave: number; // -2 to +2
+  harpOctave: number;
   chordCutoff: number;
   harpCutoff: number;
   rhythmCutoff: number;
   bassEnabled: boolean;
-  bassWaveformMix: number; // 0 = Sine, 1 = Square
-  
-  // Chord Envelope
+  bassWaveformMix: number;
   chordAttack: number;
   chordRelease: number;
-
-  // Master Tube Saturation
   tubeEnabled: boolean;
   tubeDrive: number;
   tubeWet: number;
   tubePreset: 'clean' | 'soft' | 'warm' | 'hot';
-  
-  // FX Parameters
   delayDivision: DelayDivision;
   delayFeedback: number;
   delayTone: number; 
   delaySpread: number;
-  
   reverbSize: number;
   reverbDamp: number;
   reverbWidth: number; 
   reverbColor: number;
-  
-  // Individual Sends (Mix Ratios)
   chordDelaySend: number;
   chordReverbSend: number;
   harpDelaySend: number;
   harpReverbSend: number;
   rhythmDelaySend: number;
   rhythmReverbSend: number;
-
-  // Sound Tweak Parameters
   chordWaveform: WaveformType;
   harpWaveform: WaveformType;
   vibratoAmount: number;
