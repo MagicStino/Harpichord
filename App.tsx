@@ -34,12 +34,12 @@ const INITIAL_STATE: OmnichordState = {
   rhythmCutoff: 1.0,   
   bassEnabled: false,  
   bassWaveformMix: 0.0, 
-  // Tube Saturation
+  chordAttack: 0.01,
+  chordRelease: 0.2,
   tubeEnabled: false,
   tubeDrive: 0.2,
   tubeWet: 0.4,
   tubePreset: 'soft',
-  // FX Defaults
   delayDivision: '1/8',
   delayFeedback: 0.4,
   delayTone: 0.5,
@@ -48,14 +48,12 @@ const INITIAL_STATE: OmnichordState = {
   reverbDamp: 0.3,
   reverbWidth: 0.5,
   reverbColor: 0.2,
-  // Individual Sends (Dry/Wet Ratios)
   chordDelaySend: 0.0,
   chordReverbSend: 0.1,
   harpDelaySend: 0.3,
   harpReverbSend: 0.3,
   rhythmDelaySend: 0.1,
   rhythmReverbSend: 0.05,
-  // Sound
   chordWaveform: 'square',
   harpWaveform: 'triangle',
   vibratoAmount: 0,
@@ -108,6 +106,8 @@ const App: React.FC = () => {
     audioEngine.setRhythmVolume(s.rhythmVolume);
     audioEngine.setBassVolume(s.bassVolume);
     audioEngine.setSustain(s.sustain);
+    audioEngine.setChordAttack(s.chordAttack);
+    audioEngine.setChordRelease(s.chordRelease);
     audioEngine.setTempo(s.tempo);
     audioEngine.setOctave(s.octave);
     audioEngine.setHarpOctave(s.harpOctave);
@@ -129,29 +129,9 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleChordPress = useCallback((chord: ChordDefinition | null) => {
-    if (!chord) return;
-    initAudio(); 
-    audioEngine.playChord(chord);
-    midiService.sendChord(chord);
-    setState(prev => ({ ...prev, currentChord: chord }));
-  }, [initialized, state]); 
-
-  const handleHarpTrigger = useCallback((index: number) => {
-    if (state.currentChord) {
-      audioEngine.playHarpNote(state.currentChord, index);
-      midiService.sendHarpNote(index);
-      
-      const intervalIndex = index % state.currentChord.intervals.length;
-      const octaveOffset = Math.floor(index / state.currentChord.intervals.length);
-      const midiNote = 60 + (state.octave + state.harpOctave) * 12 + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
-      setLastStrumNote({ midi: midiNote, time: Date.now() });
-    }
-  }, [state.currentChord, state.octave, state.harpOctave]);
-
-  const initAudio = useCallback(() => {
+  const initAudio = useCallback(async () => {
     if (!initialized) {
-      audioEngine.init();
+      await audioEngine.init();
       syncEngine(state);
       midiService.init(
         (chord) => handleChordPress(chord as ChordDefinition),
@@ -161,8 +141,29 @@ const App: React.FC = () => {
     }
   }, [initialized, state, syncEngine]);
 
+  const handleChordPress = useCallback((chord: ChordDefinition | null) => {
+    if (!chord) return;
+    initAudio(); 
+    audioEngine.playChord(chord);
+    midiService.sendChord(chord);
+    setState(prev => ({ ...prev, currentChord: chord }));
+  }, [initAudio]); 
+
+  const handleHarpTrigger = useCallback((index: number) => {
+    initAudio();
+    if (state.currentChord) {
+      audioEngine.playHarpNote(state.currentChord, index);
+      midiService.sendHarpNote(index);
+      
+      const intervalIndex = index % state.currentChord.intervals.length;
+      const octaveOffset = Math.floor(index / state.currentChord.intervals.length);
+      const midiNote = 60 + (state.octave + state.harpOctave) * 12 + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
+      setLastStrumNote({ midi: midiNote, time: Date.now() });
+    }
+  }, [initAudio, state.currentChord, state.octave, state.harpOctave]);
+
   useEffect(() => {
-    const timer = setTimeout(() => { initAudio(); }, 3000);
+    const timer = setTimeout(() => { initAudio(); }, 1500);
     return () => clearTimeout(timer);
   }, [initAudio]);
 
@@ -182,6 +183,8 @@ const App: React.FC = () => {
       if (updates.rhythmVolume !== undefined) audioEngine.setRhythmVolume(newState.rhythmVolume);
       if (updates.bassVolume !== undefined) audioEngine.setBassVolume(newState.bassVolume);
       if (updates.sustain !== undefined) audioEngine.setSustain(newState.sustain);
+      if (updates.chordAttack !== undefined) audioEngine.setChordAttack(newState.chordAttack);
+      if (updates.chordRelease !== undefined) audioEngine.setChordRelease(newState.chordRelease);
       if (updates.tempo !== undefined) {
         audioEngine.setTempo(newState.tempo);
         audioEngine.updateDelay(newState.delayDivision, newState.delayFeedback, newState.delayTone, newState.delaySpread);
@@ -309,7 +312,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
             <h1 className="branding-text text-8xl text-orange-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-orange-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.21 • 2026</span>
+            <span className="text-orange-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.24 • 2026</span>
             <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-orange-600 bg-black">
                <div className="w-4 h-4 rounded-full bg-orange-600 animate-ping" />
             </div>
@@ -334,11 +337,11 @@ const App: React.FC = () => {
           height: '1000px',
           flexShrink: 0
         }} 
-        className="omnichord-body pt-10 pb-6 px-16 rounded-[7.5rem] border border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
+        className="omnichord-body pt-10 pb-6 px-40 rounded-[7.5rem] border border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
-        <div className="flex justify-between items-start w-full px-24 pt-0">
+        <div className="flex justify-between items-start w-full px-40 pt-0">
           <div className="flex flex-col">
             <span className="branding-text text-6xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
             <span className="text-[12px] font-black tracking-[0.5em] text-orange-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
@@ -347,13 +350,12 @@ const App: React.FC = () => {
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-black text-orange-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.21</span>
+                <span className="text-[11px] font-black text-orange-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.24</span>
             </div>
           </div>
         </div>
 
-        {/* Changed from items-stretch to items-start to prevent ControlPanel from being forced tall */}
-        <div className="flex w-full gap-16 items-start justify-center px-16 flex-1 mt-4">
+        <div className="flex w-full gap-16 items-start justify-center px-40 flex-1 mt-4">
           <div className="w-[28%] min-w-[440px]">
             <ControlPanel state={state} onChange={handleStateChange} onReset={handleReset} />
           </div>

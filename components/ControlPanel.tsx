@@ -120,9 +120,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ state, onChange, onReset })
             {/* CHORD SECTION */}
             <div className="bg-orange-950/5 p-3 rounded-2xl border-[3px] border-orange-950/20 space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-orange-900 leading-none block mb-1">CHORD SECTION</span>
-                <div className="grid grid-cols-2 gap-2 justify-items-center">
+                <div className="grid grid-cols-2 gap-y-4 gap-x-2 justify-items-center">
                    <Knob label="CHORD VOL" size="sm" value={state.chordVolume} onChange={(v) => onChange({ chordVolume: v })} />
                    <Knob label="CHORD CUT" size="sm" value={state.chordCutoff} onChange={(v) => onChange({ chordCutoff: v })} />
+                   <Knob label="ATTACK" size="sm" value={state.chordAttack} onChange={(v) => onChange({ chordAttack: v })} />
+                   <Knob label="RELEASE" size="sm" value={state.chordRelease} onChange={(v) => onChange({ chordRelease: v })} />
                 </div>
             </div>
 

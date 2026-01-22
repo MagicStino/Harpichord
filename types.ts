@@ -50,6 +50,10 @@ export interface OmnichordState {
   bassEnabled: boolean;
   bassWaveformMix: number; // 0 = Sine, 1 = Square
   
+  // Chord Envelope
+  chordAttack: number;
+  chordRelease: number;
+
   // Master Tube Saturation
   tubeEnabled: boolean;
   tubeDrive: number;

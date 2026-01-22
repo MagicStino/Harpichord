@@ -54,6 +54,8 @@ class AudioEngine {
   private activeBassGainSaw: GainNode | null = null;
   
   private sustainValue: number = 0.5;
+  private chordAttack: number = 0.05;
+  private chordRelease: number = 0.2;
   private tempo: number = 120;
   private rhythmInterval: number | null = null;
   private octaveShift: number = 0;
@@ -69,11 +71,22 @@ class AudioEngine {
   private vibratoAmount: number = 0;
   private vibratoRate: number = 5;
 
-  init() {
-    if (this.ctx) return;
+  private firstChordPlayed: boolean = false;
+
+  async init() {
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      return;
+    }
+
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    await this.ctx.resume();
+
     this.compressor = this.ctx.createDynamicsCompressor();
     this.masterGain = this.ctx.createGain();
+    
+    // Start master gain at absolute 0 to avoid the initial "pop/burst"
+    this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime);
 
     // Master Tube Section
     this.masterTubeIn = this.ctx.createGain();
@@ -81,6 +94,8 @@ class AudioEngine {
     this.masterTubeWet = this.ctx.createGain();
     this.masterTubeAmp = this.ctx.createWaveShaper();
     this.masterTubeOut = this.ctx.createGain();
+
+    this.masterTubeAmp.curve = this.makeDistortionCurve(0.2);
 
     this.masterTubeIn.connect(this.masterTubeDry);
     this.masterTubeIn.connect(this.masterTubeAmp);
@@ -94,13 +109,11 @@ class AudioEngine {
     this.rhythmSource = this.ctx.createGain();
     this.bassSource = this.ctx.createGain();
     
-    // Rhythm Master Filter
     this.rhythmFilterBus = this.ctx.createBiquadFilter();
     this.rhythmFilterBus.type = 'lowpass';
     this.rhythmFilterBus.frequency.value = 20000;
     this.rhythmSource.connect(this.rhythmFilterBus);
 
-    // Crossfade Logic per instrument
     this.chordDry = this.ctx.createGain();
     this.chordDelaySend = this.ctx.createGain();
     this.chordReverbSend = this.ctx.createGain();
@@ -122,7 +135,7 @@ class AudioEngine {
     this.rhythmFilterBus.connect(this.rhythmDelaySend);
     this.rhythmFilterBus.connect(this.rhythmReverbSend);
 
-    // --- DELAY SETUP ---
+    // DELAY
     this.delayNodeL = this.ctx.createDelay(4.0);
     this.delayNodeR = this.ctx.createDelay(4.0);
     this.delayFeedback = this.ctx.createGain();
@@ -142,7 +155,7 @@ class AudioEngine {
     this.delayMerger.connect(this.delayOutput);
     this.delayOutput.connect(this.masterGain);
 
-    // --- REVERB SETUP ---
+    // REVERB
     this.reverbFilter = this.ctx.createBiquadFilter();
     this.reverbFilter.type = 'lowpass';
     this.reverbPanner = this.ctx.createStereoPanner();
@@ -165,16 +178,16 @@ class AudioEngine {
     this.reverbPanner.connect(this.reverbOutput);
     this.reverbOutput.connect(this.masterGain);
 
-    // Master dry destinations
     [this.chordDry, this.harpDry, this.rhythmDry, this.bassSource].forEach(n => n.connect(this.masterGain!));
 
-    // Master bus -> Tube Section -> Compressor -> Dest
     this.masterGain.connect(this.masterTubeIn);
     this.masterTubeOut.connect(this.compressor);
     this.compressor.connect(this.ctx.destination);
     
     this.compressor.threshold.setValueAtTime(-26, this.ctx.currentTime);
     this.compressor.ratio.setValueAtTime(1.5, this.ctx.currentTime);
+    this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+    this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
   }
 
   private makeDistortionCurve(amount: number) {
@@ -207,6 +220,8 @@ class AudioEngine {
   setBassVolume(v: number) { this.bassSource?.gain.setTargetAtTime(v * 0.8, this.ctx!.currentTime, 0.05); }
   
   setSustain(s: number) { this.sustainValue = s; }
+  setChordAttack(v: number) { this.chordAttack = Math.max(0.001, v); }
+  setChordRelease(v: number) { this.chordRelease = Math.max(0.01, v); }
   setTempo(t: number) { this.tempo = t; }
   setOctave(o: number) { this.octaveShift = o; }
   setHarpOctave(o: number) { this.harpOctaveShift = o; }
@@ -216,7 +231,6 @@ class AudioEngine {
     this.bassWaveformMix = mix; 
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    // Smoothed transition to avoid crackles
     if (this.activeBassGainSine) this.activeBassGainSine.gain.setTargetAtTime(0.5 * (1 - mix), now, 0.05);
     if (this.activeBassGainSaw) this.activeBassGainSaw.gain.setTargetAtTime(0.25 * mix, now, 0.05);
   }
@@ -297,51 +311,66 @@ class AudioEngine {
     this.rhythmReverbSend?.gain.setTargetAtTime(params.rhythmReverb, now, 0.05);
   }
 
-  playChord(chord: ChordDefinition) {
-    if (!this.ctx || !this.chordSource || !this.bassSource) return;
-    const now = this.ctx.currentTime;
+  async playChord(chord: ChordDefinition) {
+    if (!this.ctx) await this.init();
+    if (this.ctx!.state === 'suspended') await this.ctx!.resume();
     
-    // Stop current chord and bass oscillators
+    const now = this.ctx!.currentTime;
+    const currentRelease = this.chordRelease;
+
+    // Safety: Master gain ramp
+    if (!this.firstChordPlayed) {
+      this.masterGain!.gain.setTargetAtTime(1, now, 0.05);
+      this.firstChordPlayed = true;
+    }
+    
+    // Smoothly transition old chord voices out using the RELEASE value
     this.chordOscillators.forEach(({ osc, gain }) => {
-      gain.gain.setTargetAtTime(0, now, 0.05);
-      osc.stop(now + 0.1);
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setTargetAtTime(0, now, currentRelease);
+      osc.stop(now + currentRelease * 4); // Clean up after release
     });
+
+    // Reset list for new voices
     this.chordOscillators = [];
     
+    // Bass also respects release on transition
     this.bassOscillators.forEach(({ osc, gain }) => {
-      gain.gain.setTargetAtTime(0, now, 0.05);
-      osc.stop(now + 0.1);
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setTargetAtTime(0, now, currentRelease);
+      osc.stop(now + currentRelease * 4);
     });
     this.bassOscillators = [];
     this.activeBassGainSine = null;
     this.activeBassGainSaw = null;
 
-    // Bass note: sine to sawtooth waveform mix support
     if (this.bassEnabled) {
       const bassInterval = chord.intervals[0] - 12;
       const freq = 130.81 * Math.pow(2, this.octaveShift) * Math.pow(2, bassInterval / 12);
       
-      const oscSine = this.ctx.createOscillator();
-      const gainSine = this.ctx.createGain();
+      const oscSine = this.ctx!.createOscillator();
+      const gainSine = this.ctx!.createGain();
       oscSine.type = 'sine';
       oscSine.frequency.setValueAtTime(freq, now);
-      gainSine.gain.setValueAtTime(0.5 * (1 - this.bassWaveformMix), now);
+      gainSine.gain.setValueAtTime(0, now);
+      gainSine.gain.setTargetAtTime(0.5 * (1 - this.bassWaveformMix), now, this.chordAttack);
       oscSine.connect(gainSine);
-      gainSine.connect(this.bassSource);
+      gainSine.connect(this.bassSource!);
       oscSine.start();
       this.activeBassGainSine = gainSine;
 
-      const oscSaw = this.ctx.createOscillator();
-      const gainSaw = this.ctx.createGain();
-      const lpf = this.ctx.createBiquadFilter();
+      const oscSaw = this.ctx!.createOscillator();
+      const gainSaw = this.ctx!.createGain();
+      const lpf = this.ctx!.createBiquadFilter();
       lpf.type = 'lowpass';
-      lpf.frequency.setValueAtTime(800, now); // Soften the sawtooth
+      lpf.frequency.setValueAtTime(800, now);
       oscSaw.type = 'sawtooth';
       oscSaw.frequency.setValueAtTime(freq, now);
-      gainSaw.gain.setValueAtTime(0.25 * this.bassWaveformMix, now);
+      gainSaw.gain.setValueAtTime(0, now);
+      gainSaw.gain.setTargetAtTime(0.25 * this.bassWaveformMix, now, this.chordAttack);
       oscSaw.connect(lpf);
       lpf.connect(gainSaw);
-      gainSaw.connect(this.bassSource);
+      gainSaw.connect(this.bassSource!);
       oscSaw.start();
       this.activeBassGainSaw = gainSaw;
 
@@ -349,7 +378,6 @@ class AudioEngine {
       this.bassOscillators.push({ osc: oscSaw, gain: gainSaw });
     }
 
-    // Chord notes
     chord.intervals.forEach((interval) => {
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
@@ -367,7 +395,10 @@ class AudioEngine {
       
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(100 + (this.chordCutoff * 5000), now);
-      gain.gain.setValueAtTime(0.2, now);
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.setTargetAtTime(0.2, now, this.chordAttack);
+      
       osc.connect(filter); filter.connect(gain); gain.connect(this.chordSource!);
       osc.start(); this.chordOscillators.push({ osc, gain, filter });
     });
@@ -376,37 +407,44 @@ class AudioEngine {
   stopChord(immediate = false) {
     if (!this.chordSource || !this.ctx) return;
     const now = this.ctx.currentTime;
-    const release = immediate ? 0.02 : (0.2 + (this.sustainValue * 2.5));
+    const releaseTime = immediate ? 0.02 : this.chordRelease;
     
-    this.chordOscillators.forEach(({ gain }) => {
+    this.chordOscillators.forEach(({ gain, osc }) => {
       gain.gain.cancelScheduledValues(now);
-      gain.gain.setTargetAtTime(0, now, release);
+      gain.gain.setTargetAtTime(0, now, releaseTime);
+      osc.stop(now + releaseTime * 4);
     });
     
-    this.bassOscillators.forEach(({ gain }) => {
+    this.bassOscillators.forEach(({ gain, osc }) => {
       gain.gain.cancelScheduledValues(now);
-      gain.gain.setTargetAtTime(0, now, release);
+      gain.gain.setTargetAtTime(0, now, releaseTime);
+      osc.stop(now + releaseTime * 4);
     });
 
-    setTimeout(() => {
-        this.chordOscillators.forEach(({ osc }) => { try { osc.stop(); } catch(e) {} });
-        this.chordOscillators = [];
-        this.bassOscillators.forEach(({ osc }) => { try { osc.stop(); } catch(e) {} });
-        this.bassOscillators = [];
-        this.activeBassGainSine = null;
-        this.activeBassGainSaw = null;
-    }, release * 1000 + 50);
+    // Clear main tracking lists after scheduling cleanup
+    this.chordOscillators = [];
+    this.bassOscillators = [];
+    this.activeBassGainSine = null;
+    this.activeBassGainSaw = null;
   }
 
-  playHarpNote(chord: ChordDefinition, stringIndex: number) {
-    if (!this.ctx || !this.harpSource) return;
-    const now = this.ctx.currentTime;
+  async playHarpNote(chord: ChordDefinition, stringIndex: number) {
+    if (!this.ctx) await this.init();
+    if (this.ctx!.state === 'suspended') await this.ctx!.resume();
+    
+    const now = this.ctx!.currentTime;
+
+    if (!this.firstChordPlayed) {
+      this.masterGain!.gain.setTargetAtTime(1, now, 0.05);
+      this.firstChordPlayed = true;
+    }
+
     const intervalIndex = stringIndex % chord.intervals.length;
     const octaveOffset = Math.floor(stringIndex / chord.intervals.length);
     const freq = 261.63 * Math.pow(2, this.octaveShift + this.harpOctaveShift) * Math.pow(2, (chord.intervals[intervalIndex] + (octaveOffset * 12)) / 12);
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
+    const osc = this.ctx!.createOscillator();
+    const gain = this.ctx!.createGain();
+    const filter = this.ctx!.createBiquadFilter();
     osc.type = this.harpWaveform;
     osc.frequency.setValueAtTime(freq, now);
     filter.type = 'lowpass';
@@ -416,7 +454,7 @@ class AudioEngine {
     gain.gain.setValueAtTime(0.4, now);
     const decay = 0.6 + (this.sustainValue * 5);
     gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
-    osc.connect(filter); filter.connect(gain); gain.connect(this.harpSource);
+    osc.connect(filter); filter.connect(gain); gain.connect(this.harpSource!);
     osc.start(); osc.stop(now + decay + 0.1);
   }
 
