@@ -43,10 +43,12 @@ export interface OmnichordState {
   isPlaying: boolean;
   useTouchpad: boolean;
   octave: number;
+  harpOctave: number; // -2 to +2
   chordCutoff: number;
   harpCutoff: number;
   rhythmCutoff: number;
   bassEnabled: boolean;
+  bassWaveformMix: number; // 0 = Sine, 1 = Square
   
   // Master Tube Saturation
   tubeEnabled: boolean;

@@ -28,10 +28,12 @@ const INITIAL_STATE: OmnichordState = {
   isPlaying: false,
   useTouchpad: false,
   octave: 0,
+  harpOctave: 0,
   chordCutoff: 0.35,
   harpCutoff: 0.7,   
   rhythmCutoff: 1.0,
   bassEnabled: false,
+  bassWaveformMix: 0,
   // Tube Saturation
   tubeEnabled: false,
   tubeDrive: 0.2,
@@ -108,10 +110,12 @@ const App: React.FC = () => {
     audioEngine.setSustain(s.sustain);
     audioEngine.setTempo(s.tempo);
     audioEngine.setOctave(s.octave);
+    audioEngine.setHarpOctave(s.harpOctave);
     audioEngine.setChordCutoff(s.chordCutoff);
     audioEngine.setHarpCutoff(s.harpCutoff);
     audioEngine.setRhythmCutoff(s.rhythmCutoff);
     audioEngine.setBassEnabled(s.bassEnabled);
+    audioEngine.setBassWaveformMix(s.bassWaveformMix);
     audioEngine.setTubeAmp(s.tubeEnabled, s.tubeDrive, s.tubeWet);
     audioEngine.setChordWaveform(s.chordWaveform);
     audioEngine.setHarpWaveform(s.harpWaveform);
@@ -140,10 +144,10 @@ const App: React.FC = () => {
       
       const intervalIndex = index % state.currentChord.intervals.length;
       const octaveOffset = Math.floor(index / state.currentChord.intervals.length);
-      const midiNote = 60 + (state.octave * 12) + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
+      const midiNote = 60 + (state.octave + state.harpOctave) * 12 + (state.currentChord.intervals[intervalIndex] % 12) + (octaveOffset * 12);
       setLastStrumNote({ midi: midiNote, time: Date.now() });
     }
-  }, [state.currentChord, state.octave]);
+  }, [state.currentChord, state.octave, state.harpOctave]);
 
   const initAudio = useCallback(() => {
     if (!initialized) {
@@ -191,12 +195,19 @@ const App: React.FC = () => {
         audioEngine.setOctave(newState.octave);
         if (newState.currentChord) audioEngine.playChord(newState.currentChord);
       }
+      if (updates.harpOctave !== undefined) {
+        audioEngine.setHarpOctave(newState.harpOctave);
+      }
       if (updates.chordCutoff !== undefined) audioEngine.setChordCutoff(newState.chordCutoff);
       if (updates.harpCutoff !== undefined) audioEngine.setHarpCutoff(newState.harpCutoff);
       if (updates.rhythmCutoff !== undefined) audioEngine.setRhythmCutoff(newState.rhythmCutoff);
       if (updates.bassEnabled !== undefined) {
           audioEngine.setBassEnabled(newState.bassEnabled);
           if (newState.currentChord) audioEngine.playChord(newState.currentChord);
+      }
+      if (updates.bassWaveformMix !== undefined) {
+          audioEngine.setBassWaveformMix(newState.bassWaveformMix);
+          // Removed full restart here to allow smooth real-time gain adjustment in audioEngine
       }
       if (updates.tubeEnabled !== undefined || updates.tubeDrive !== undefined || updates.tubeWet !== undefined) {
           audioEngine.setTubeAmp(newState.tubeEnabled, newState.tubeDrive, newState.tubeWet);
@@ -298,19 +309,19 @@ const App: React.FC = () => {
       {!initialized && (
         <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-black/95 backdrop-blur-3xl">
           <div className="flex flex-col items-center animate-pulse duration-[3000ms]">
-            <h1 className="branding-text text-8xl text-amber-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
-            <span className="text-amber-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.15 • 2026</span>
-            <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-amber-600 bg-black">
-               <div className="w-4 h-4 rounded-full bg-amber-600 animate-ping" />
+            <h1 className="branding-text text-8xl text-orange-600 mb-2 tracking-tighter uppercase font-black italic">HARPICHORD</h1>
+            <span className="text-orange-700/40 text-[11px] font-black uppercase tracking-[0.8em] mb-12">V4.18 • 2026</span>
+            <div className="w-28 h-28 flex items-center justify-center rounded-full border-4 border-orange-600 bg-black">
+               <div className="w-4 h-4 rounded-full bg-orange-600 animate-ping" />
             </div>
           </div>
-          <p className="mt-16 text-amber-600/20 text-[10px] uppercase tracking-[1em] font-black">BOOTING CORE...</p>
+          <p className="mt-16 text-orange-600/20 text-[10px] uppercase tracking-[1em] font-black">BOOTING CORE...</p>
         </div>
       )}
 
       {state.useTouchpad && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[400] pointer-events-none flex flex-col items-center gap-1">
-            <div className="bg-amber-600 text-black px-8 py-2.5 rounded-full border-2 border-amber-400 font-black text-[12px] uppercase tracking-widest animate-pulse shadow-[0_0_30px_rgba(217,119,6,0.5)]">
+            <div className="bg-orange-600 text-black px-8 py-2.5 rounded-full border-2 border-orange-400 font-black text-[12px] uppercase tracking-widest animate-pulse shadow-[0_0_30px_rgba(234,88,12,0.5)]">
                 SENSORY TOUCHPAD ACTIVE • STRUM MOUSE VERTICALLY
             </div>
         </div>
@@ -324,20 +335,20 @@ const App: React.FC = () => {
           height: '1000px',
           flexShrink: 0
         }} 
-        className="omnichord-body pt-10 pb-6 px-16 rounded-[7.5rem] border-[4px] border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
+        className="omnichord-body pt-10 pb-6 px-16 rounded-[7.5rem] border border-[#c4b598] relative transition-all shadow-[0_120px_240px_rgba(0,0,0,1)] flex flex-col justify-between"
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
         <div className="flex justify-between items-start w-full px-24 pt-0">
           <div className="flex flex-col">
             <span className="branding-text text-6xl tracking-[-0.08em] opacity-90 leading-none">HARPICHORD</span>
-            <span className="text-[12px] font-black tracking-[0.5em] text-amber-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
+            <span className="text-[12px] font-black tracking-[0.5em] text-orange-900/40 uppercase mt-2 italic">STIJN DE RYCK • 2026</span>
           </div>
           <div className="flex items-center gap-10 bg-black/10 px-10 py-4 rounded-full border border-black/10 shadow-inner">
             <div className={`w-7 h-7 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_40px_rgba(22,163,74,0.8)]' : 'bg-green-950'}`} />
             <div className="w-0.5 h-10 bg-black/15 rounded-full" />
             <div className="flex flex-col justify-center">
-                <span className="text-[11px] font-black text-amber-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.15</span>
+                <span className="text-[11px] font-black text-orange-900/60 tracking-[0.3em] uppercase leading-none">VERSION V4.18</span>
             </div>
           </div>
         </div>
@@ -348,7 +359,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-1 flex flex-col gap-4 items-center justify-start relative">
-            <div className="w-full h-[580px] bg-[#dcd0b8] rounded-[5rem] border-[4px] border-[#bdae93] shadow-[inset_0_25px_50px_rgba(0,0,0,0.2)] flex items-center justify-center p-8">
+            <div className="w-full h-[580px] bg-[#dcd0b8] rounded-[5rem] border border-[#bdae93] shadow-[inset_0_25px_50px_rgba(0,0,0,0.2)] flex items-center justify-center p-8">
               <ChordGrid 
                 activeChord={state.currentChord} 
                 currentPage={state.chordPage}
@@ -360,16 +371,16 @@ const App: React.FC = () => {
             
             <div className="flex flex-col items-center gap-6 w-full">
                 <div className="flex items-center gap-12">
-                    <div className="w-40 h-[1.5px] bg-amber-900/20" />
-                    <button onClick={handleKillChord} className="w-[58px] h-[58px] rounded-full bg-[#b00] border-[4px] border-[#800] shadow-[0_8px_0_#500] active:translate-y-2 active:shadow-none transition-all flex items-center justify-center cursor-pointer group relative overflow-hidden">
+                    <div className="w-40 h-[1.5px] bg-orange-900/20" />
+                    <button onClick={handleKillChord} className="w-[58px] h-[58px] rounded-full bg-[#b00] border-2 border-[#800] shadow-[0_8px_0_#500] active:translate-y-2 active:shadow-none transition-all flex items-center justify-center cursor-pointer group relative overflow-hidden">
                       <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <span className="text-[10px] font-black text-white uppercase text-center leading-tight tracking-widest group-active:scale-90 transition-transform relative z-10">KILL<br/><span className="text-[8px] opacity-60 font-bold">RESET</span></span>
                     </button>
-                    <div className="w-40 h-[1.5px] bg-amber-900/20" />
+                    <div className="w-40 h-[1.5px] bg-orange-900/20" />
                 </div>
 
-                <div className="w-[900px] mt-[15px]">
-                    <div className="w-full bg-[#dcd0b8] rounded-[3rem] border-[4px] border-[#bdae93] shadow-[inset_0_8px_16px_rgba(0,0,0,0.1),0_10px_30px_rgba(0,0,0,0.15)] p-3">
+                <div className="w-[900px] mt-[30px]">
+                    <div className="w-full bg-[#dcd0b8] rounded-[3rem] border border-[#bdae93] shadow-[inset_0_8px_16px_rgba(0,0,0,0.1),0_10px_30px_rgba(0,0,0,0.15)] p-3">
                       <PianoKeyboard 
                         currentChord={state.currentChord} 
                         octave={state.octave} 
@@ -383,7 +394,7 @@ const App: React.FC = () => {
 
           <div className="flex flex-col items-center justify-center gap-10">
              <SonicStrings currentChord={state.currentChord} useTouchpad={state.useTouchpad} onTrigger={handleHarpTrigger} />
-             <button onClick={() => handleStateChange({ useTouchpad: !state.useTouchpad })} className={`w-[90px] h-[90px] rounded-[2rem] border-[10px] transition-all flex items-center justify-center cursor-pointer shadow-[0_12px_0_#222] active:translate-y-2 active:shadow-none group ${state.useTouchpad ? 'bg-amber-600 border-amber-800' : 'bg-[#1a1a1a] border-[#0a0a0a]'}`}>
+             <button onClick={() => handleStateChange({ useTouchpad: !state.useTouchpad })} className={`w-[90px] h-[90px] rounded-[2rem] border-[4px] border-black transition-all flex items-center justify-center cursor-pointer shadow-[0_12px_0_#222] active:translate-y-2 active:shadow-none group ${state.useTouchpad ? 'bg-orange-600 border-orange-800' : 'bg-[#1a1a1a] border-[#0a0a0a]'}`}>
                 <div className="flex flex-col items-center leading-none text-white group-active:scale-90 transition-transform">
                     <span className={`text-[12px] font-black tracking-widest mb-2 ${state.useTouchpad ? 'text-black' : 'opacity-40'}`}>TOUCH</span>
                     <span className={`text-[12px] font-black tracking-widest ${state.useTouchpad ? 'text-black' : ''}`}>PAD</span>

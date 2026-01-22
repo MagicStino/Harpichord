@@ -53,7 +53,7 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ currentChord, octave, bas
         let changed = false;
         Object.keys(next).forEach(key => {
           const k = Number(key);
-          if (now - next[k] > 600) { // Keep slightly longer than 0.2s for visual safety
+          if (now - next[k] > 600) { 
             delete next[k];
             changed = true;
           }

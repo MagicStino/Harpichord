@@ -49,14 +49,20 @@ class AudioEngine {
   private chordOscillators: { osc: OscillatorNode; gain: GainNode; filter: BiquadFilterNode }[] = [];
   private bassOscillators: { osc: OscillatorNode; gain: GainNode }[] = [];
   
+  // Real-time Bass Control nodes
+  private activeBassGainSine: GainNode | null = null;
+  private activeBassGainSaw: GainNode | null = null;
+  
   private sustainValue: number = 0.5;
   private tempo: number = 120;
   private rhythmInterval: number | null = null;
   private octaveShift: number = 0;
+  private harpOctaveShift: number = 0;
   private chordCutoff: number = 0.5;
   private harpCutoff: number = 0.8;
   private rhythmCutoff: number = 1.0;
   private bassEnabled: boolean = false;
+  private bassWaveformMix: number = 0;
 
   private chordWaveform: WaveformType = 'square';
   private harpWaveform: WaveformType = 'triangle';
@@ -203,7 +209,17 @@ class AudioEngine {
   setSustain(s: number) { this.sustainValue = s; }
   setTempo(t: number) { this.tempo = t; }
   setOctave(o: number) { this.octaveShift = o; }
+  setHarpOctave(o: number) { this.harpOctaveShift = o; }
   setBassEnabled(enabled: boolean) { this.bassEnabled = enabled; }
+  
+  setBassWaveformMix(mix: number) { 
+    this.bassWaveformMix = mix; 
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Smoothed transition to avoid crackles
+    if (this.activeBassGainSine) this.activeBassGainSine.gain.setTargetAtTime(0.5 * (1 - mix), now, 0.05);
+    if (this.activeBassGainSaw) this.activeBassGainSaw.gain.setTargetAtTime(0.25 * mix, now, 0.05);
+  }
   
   setChordCutoff(v: number) {
     this.chordCutoff = v;
@@ -244,9 +260,6 @@ class AudioEngine {
     this.delayNodeL.delayTime.setTargetAtTime(time, this.ctx!.currentTime, 0.1);
     this.delayNodeR.delayTime.setTargetAtTime(time * (1 + spread * 0.1), this.ctx!.currentTime, 0.1);
     
-    // User requested endless at 100% and much lighter at 51%.
-    // Mapping feedback with a steeper curve (power of 2.5) ensures that 0.51 is ~0.18 (very light) 
-    // while 1.0 is exactly 1.0 (endless).
     const scaledFeedback = Math.pow(feedback, 2.5);
     this.delayFeedback.gain.setTargetAtTime(scaledFeedback, this.ctx!.currentTime, 0.1);
     this.delayFilter.frequency.setTargetAtTime(200 + (tone * 14000), this.ctx!.currentTime, 0.1);
@@ -300,19 +313,40 @@ class AudioEngine {
       osc.stop(now + 0.1);
     });
     this.bassOscillators = [];
+    this.activeBassGainSine = null;
+    this.activeBassGainSaw = null;
 
-    // Bass note: always follows the root (intervals[0]) one octave lower
+    // Bass note: sine to sawtooth waveform mix support
     if (this.bassEnabled) {
       const bassInterval = chord.intervals[0] - 12;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine'; // Pure sine for bass
-      osc.frequency.setValueAtTime(130.81 * Math.pow(2, this.octaveShift) * Math.pow(2, bassInterval / 12), now);
-      gain.gain.setValueAtTime(0.4, now);
-      osc.connect(gain);
-      gain.connect(this.bassSource);
-      osc.start();
-      this.bassOscillators.push({ osc, gain });
+      const freq = 130.81 * Math.pow(2, this.octaveShift) * Math.pow(2, bassInterval / 12);
+      
+      const oscSine = this.ctx.createOscillator();
+      const gainSine = this.ctx.createGain();
+      oscSine.type = 'sine';
+      oscSine.frequency.setValueAtTime(freq, now);
+      gainSine.gain.setValueAtTime(0.5 * (1 - this.bassWaveformMix), now);
+      oscSine.connect(gainSine);
+      gainSine.connect(this.bassSource);
+      oscSine.start();
+      this.activeBassGainSine = gainSine;
+
+      const oscSaw = this.ctx.createOscillator();
+      const gainSaw = this.ctx.createGain();
+      const lpf = this.ctx.createBiquadFilter();
+      lpf.type = 'lowpass';
+      lpf.frequency.setValueAtTime(800, now); // Soften the sawtooth
+      oscSaw.type = 'sawtooth';
+      oscSaw.frequency.setValueAtTime(freq, now);
+      gainSaw.gain.setValueAtTime(0.25 * this.bassWaveformMix, now);
+      oscSaw.connect(lpf);
+      lpf.connect(gainSaw);
+      gainSaw.connect(this.bassSource);
+      oscSaw.start();
+      this.activeBassGainSaw = gainSaw;
+
+      this.bassOscillators.push({ osc: oscSine, gain: gainSine });
+      this.bassOscillators.push({ osc: oscSaw, gain: gainSaw });
     }
 
     // Chord notes
@@ -359,6 +393,8 @@ class AudioEngine {
         this.chordOscillators = [];
         this.bassOscillators.forEach(({ osc }) => { try { osc.stop(); } catch(e) {} });
         this.bassOscillators = [];
+        this.activeBassGainSine = null;
+        this.activeBassGainSaw = null;
     }, release * 1000 + 50);
   }
 
@@ -367,7 +403,7 @@ class AudioEngine {
     const now = this.ctx.currentTime;
     const intervalIndex = stringIndex % chord.intervals.length;
     const octaveOffset = Math.floor(stringIndex / chord.intervals.length);
-    const freq = 261.63 * Math.pow(2, this.octaveShift) * Math.pow(2, (chord.intervals[intervalIndex] + (octaveOffset * 12)) / 12);
+    const freq = 261.63 * Math.pow(2, this.octaveShift + this.harpOctaveShift) * Math.pow(2, (chord.intervals[intervalIndex] + (octaveOffset * 12)) / 12);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
