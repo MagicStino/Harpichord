@@ -193,7 +193,7 @@ const App: React.FC = () => {
       }
       if (updates.vibratoAmount !== undefined || updates.vibratoRate !== undefined) {
           audioEngine.setVibrato(newState.vibratoAmount, newState.vibratoRate);
-          if (newState.currentChord) audioEngine.playChord(newState.currentChord);
+          // Optimized: Removed playChord re-trigger to allow smooth modulation
       }
       if (updates.delayDivision !== undefined || updates.delayFeedback !== undefined || updates.delayTone !== undefined || updates.delaySpread !== undefined) {
           audioEngine.updateDelay(newState.delayDivision, newState.delayFeedback, newState.delayTone, newState.delaySpread);
@@ -287,7 +287,7 @@ const App: React.FC = () => {
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1060px] h-4 bg-black/5 rounded-b-[2rem] border-b border-black/5" />
         
-        {/* LOGO HEADER V4.32: Lifted components up to ensure piano fits frame */}
+        {/* LOGO HEADER V4.33: Lifted components up to ensure piano fits frame */}
         <div className="flex justify-between items-start w-full px-40 pt-0 relative min-h-[100px]">
           {/* Left - Power/Version module lowered slightly (mt-1.5) */}
           <div className="w-[440px] flex items-center gap-6 mt-1.5">
@@ -295,7 +295,7 @@ const App: React.FC = () => {
               <div className={`w-5 h-5 rounded-full border-2 border-black/40 transition-all duration-700 ${initialized ? 'bg-green-600 shadow-[0_0_20px_rgba(22,163,74,0.6)]' : 'bg-green-950'}`} />
               <div className="w-px h-6 bg-black/15" />
               <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-orange-900/60 tracking-[0.2em] uppercase leading-none">V4.32</span>
+                  <span className="text-[10px] font-black text-orange-900/60 tracking-[0.2em] uppercase leading-none">V4.33</span>
               </div>
             </div>
             <div className="flex flex-col">

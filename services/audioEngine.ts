@@ -1,5 +1,13 @@
 import { ChordDefinition, RhythmPattern, DelayDivision, WaveformType } from '../types';
 
+interface ActiveOscillator {
+  osc: OscillatorNode;
+  gain: GainNode;
+  filter: BiquadFilterNode;
+  lfo?: OscillatorNode;
+  lfoGain?: GainNode;
+}
+
 class AudioEngine {
   public ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -42,7 +50,7 @@ class AudioEngine {
   private reverbPanner: StereoPannerNode | null = null;
   private reverbOutput: GainNode | null = null;
 
-  private chordOscillators: { osc: OscillatorNode; gain: GainNode; filter: BiquadFilterNode }[] = [];
+  private chordOscillators: ActiveOscillator[] = [];
   private bassOscillators: { osc: OscillatorNode; gain: GainNode }[] = [];
   
   private activeBassGainSine: GainNode | null = null;
@@ -79,7 +87,6 @@ class AudioEngine {
 
     this.compressor = this.ctx.createDynamicsCompressor();
     this.masterGain = this.ctx.createGain();
-    // Initially silent
     this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime);
 
     this.masterTubeIn = this.ctx.createGain();
@@ -240,7 +247,19 @@ class AudioEngine {
 
   setChordWaveform(w: WaveformType) { this.chordWaveform = w; }
   setHarpWaveform(w: WaveformType) { this.harpWaveform = w; }
-  setVibrato(amount: number, rate: number) { this.vibratoAmount = amount; this.vibratoRate = rate; }
+
+  setVibrato(amount: number, rate: number) { 
+    this.vibratoAmount = amount; 
+    this.vibratoRate = rate; 
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.chordOscillators.forEach(active => {
+      if (active.lfo && active.lfoGain) {
+        active.lfo.frequency.setTargetAtTime(rate, now, 0.05);
+        active.lfoGain.gain.setTargetAtTime(amount * 18, now, 0.05); // Improved range
+      }
+    });
+  }
 
   updateDelay(division: DelayDivision, feedback: number, tone: number, spread: number) {
     if (!this.delayNodeL || !this.delayNodeR || !this.delayFeedback || !this.delayFilter) return;
@@ -308,7 +327,6 @@ class AudioEngine {
     const currentRelease = this.chordRelease;
 
     if (!this.firstChordPlayed) {
-      // FIX V4.30: Silence buffer for 0.15s, then ramp up over 0.3s (time constant ~0.1)
       const bootSilence = 0.15;
       this.masterGain!.gain.setValueAtTime(0, now);
       this.masterGain!.gain.setValueAtTime(0, now + bootSilence);
@@ -316,10 +334,12 @@ class AudioEngine {
       this.firstChordPlayed = true;
     }
     
-    this.chordOscillators.forEach(({ osc, gain }) => {
-      gain.gain.cancelScheduledValues(now);
-      gain.gain.setTargetAtTime(0, now, currentRelease);
-      osc.stop(now + currentRelease * 4);
+    // Cleanup active chord oscillators and their LFOs
+    this.chordOscillators.forEach((active) => {
+      active.gain.gain.cancelScheduledValues(now);
+      active.gain.gain.setTargetAtTime(0, now, currentRelease);
+      active.osc.stop(now + currentRelease * 4);
+      if (active.lfo) active.lfo.stop(now + currentRelease * 4);
     });
     this.chordOscillators = [];
     
@@ -371,11 +391,14 @@ class AudioEngine {
       osc.type = this.chordWaveform;
       osc.frequency.setValueAtTime(130.81 * Math.pow(2, this.octaveShift) * Math.pow(2, interval / 12), now);
       
+      // Fixed Vibrato: Create and track LFO nodes
+      let lfo: OscillatorNode | undefined;
+      let lfoG: GainNode | undefined;
       if (this.vibratoAmount > 0) {
-        const lfo = this.ctx!.createOscillator();
-        const lfoG = this.ctx!.createGain();
-        lfo.frequency.value = this.vibratoRate;
-        lfoG.gain.value = this.vibratoAmount * 12;
+        lfo = this.ctx!.createOscillator();
+        lfoG = this.ctx!.createGain();
+        lfo.frequency.setValueAtTime(this.vibratoRate, now);
+        lfoG.gain.setValueAtTime(this.vibratoAmount * 18, now); 
         lfo.connect(lfoG);
         lfoG.connect(osc.frequency);
         lfo.start();
@@ -386,7 +409,8 @@ class AudioEngine {
       gain.gain.setValueAtTime(0, now);
       gain.gain.setTargetAtTime(0.2, now, this.chordAttack);
       osc.connect(filter); filter.connect(gain); gain.connect(this.chordSource!);
-      osc.start(); this.chordOscillators.push({ osc, gain, filter });
+      osc.start(); 
+      this.chordOscillators.push({ osc, gain, filter, lfo, lfoGain: lfoG });
     });
   }
 
@@ -394,10 +418,11 @@ class AudioEngine {
     if (!this.chordSource || !this.ctx) return;
     const now = this.ctx.currentTime;
     const releaseTime = immediate ? 0.02 : this.chordRelease;
-    this.chordOscillators.forEach(({ gain, osc }) => {
-      gain.gain.cancelScheduledValues(now);
-      gain.gain.setTargetAtTime(0, now, releaseTime);
-      osc.stop(now + releaseTime * 4);
+    this.chordOscillators.forEach((active) => {
+      active.gain.gain.cancelScheduledValues(now);
+      active.gain.gain.setTargetAtTime(0, now, releaseTime);
+      active.osc.stop(now + releaseTime * 4);
+      if (active.lfo) active.lfo.stop(now + releaseTime * 4);
     });
     this.bassOscillators.forEach(({ gain, osc }) => {
       gain.gain.cancelScheduledValues(now);
