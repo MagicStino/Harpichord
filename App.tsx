@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { OmnichordState, ChordDefinition, RhythmPattern, DelayDivision } from './types';
 import { 
   MAJOR_CHORDS, MINOR_CHORDS, DOM7_CHORDS,
@@ -403,6 +404,7 @@ const App: React.FC = () => {
         </div>
         <div className="h-6" />
       </div>
+      <Analytics />
     </div>
   );
 };
